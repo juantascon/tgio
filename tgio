@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import sys, os, xdg.BaseDirectory
+import configparser, argparse
+import telebot
+
+__version__ = "0.0.1"
+
+MAXMSGLEN = 5000
+DEFAULTCONFIGFILE = xdg.BaseDirectory.save_config_path("tgio")+"/tgio.cfg"
+
+# debugging only, usage: interactive(locals())
+def interactive(local):
+    import code, readline, rlcompleter
+    readline.parse_and_bind("tab: complete")
+    code.interact(local=local)
+
+def cmd_echo(args):
+    bot = telebot.TeleBot(args.token)
+    bot.get_me()
+    bot.send_message(args.user, str.join(" ", args.message))
+
+def cmd_read(args):
+    bot = telebot.TeleBot(args.token, threaded=False)
+    bot.get_me()
+    
+    if args.message:
+        bot.send_message(args.user, str.join(" ", args.message))
+    
+    @bot.message_handler(func=lambda message: True)
+    def _handle_reponse(message):
+        print(message.text)
+        bot.stop_polling()
+    
+    bot.polling()
+
+def main():
+    parser = argparse.ArgumentParser(description="io shell commands over telegram")
+    parser.add_argument("-v", "--version", action="version", version="%(prog)s "+__version__)
+    parser.add_argument("-t", "--token", help="bot auth token")
+    parser.add_argument("-u", "--user", help="user id")
+    subparsers = parser.add_subparsers(dest="command")
+    subparsers.required = True
+    
+    parser_echo = subparsers.add_parser("echo")
+    parser_echo.add_argument("message", nargs="+", help="send this message")
+    parser_echo.set_defaults(func=cmd_echo)
+    
+    parser_read = subparsers.add_parser("read")
+    parser_read.add_argument("message", nargs="*", help="send this message before reading input")
+    parser_read.set_defaults(func=cmd_read)
+    
+    args = parser.parse_args()
+    
+    configfile = DEFAULTCONFIGFILE
+    config = configparser.ConfigParser()
+    config.read(configfile)
+    
+    args.token = args.token or config.get("auth", "token", fallback=None)
+    if not args.token:
+        parser.print_usage()
+        print("error: token required, please set as parameter or config file")
+        sys.exit(1)
+    
+    args.user = args.user or config.get("auth", "user", fallback=None)
+    if not args.user:
+        parser.print_usage()
+        print("error: user required, please set as parameter or config file")
+        sys.exit(1)
+    #interactive(locals())
+    try:
+        args.func(args)
+    except telebot.apihelper.ApiException as e:
+        print("telegram api error, please check your token or your network [call: %s, result: %s]"%(e.function_name, e.result))
+        sys.exit(1)
+    
+if __name__ == "__main__":
+    main()
+    
