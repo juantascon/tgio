@@ -17,22 +17,20 @@ def interactive(local):
     code.interact(local=local)
 
 def cmd_echo(args):
-    bot = telebot.TeleBot(args.token)
+    bot = telebot.TeleBot(args.token, threaded=False)
     bot.get_me()
     bot.send_message(args.user, str.join(" ", args.message))
 
 def cmd_read(args):
     bot = telebot.TeleBot(args.token, threaded=False)
     bot.get_me()
+    sent = bot.send_message(args.user, str.join(" ", args.message), reply_markup=telebot.types.ForceReply())
     
-    if args.message:
-        bot.send_message(args.user, str.join(" ", args.message))
-    
-    @bot.message_handler(func=lambda message: True)
-    def _handle_reponse(message):
+    def _process_reply(message):
         print(message.text)
         bot.stop_polling()
     
+    bot.register_for_reply(sent, _process_reply)
     bot.polling()
 
 def main():
@@ -47,8 +45,8 @@ def main():
     parser_echo.add_argument("message", nargs="+", help="send this message")
     parser_echo.set_defaults(func=cmd_echo)
     
-    parser_read = subparsers.add_parser("read")
-    parser_read.add_argument("message", nargs="*", help="send this message before reading input")
+    parser_read = subparsers.add_parser("read", description="sends a message and print a reply (warning: user must hit REPLY to message, regular messages will be ignored)")
+    parser_read.add_argument("message", nargs="*", help="send this message")
     parser_read.set_defaults(func=cmd_read)
     
     args = parser.parse_args()
@@ -68,7 +66,7 @@ def main():
         parser.print_usage()
         print("error: user required, please set as parameter or config file")
         sys.exit(1)
-    #interactive(locals())
+    
     try:
         args.func(args)
     except telebot.apihelper.ApiException as e:
