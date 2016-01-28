@@ -5,7 +5,7 @@ import sys, os, xdg.BaseDirectory
 import configparser, argparse
 import telebot
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 MAXMSGLEN = 5000
 DEFAULTCONFIGFILE = xdg.BaseDirectory.save_config_path("tgio")+"/tgio.cfg"

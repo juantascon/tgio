@@ -2,9 +2,11 @@
 
 from setuptools import setup
 
+__version__ = "0.0.2"
+
 setup(
     name="tgio",
-    version="0.0.1",
+    version=__version__,
     description="io shell commands over telegram (echo, read, etc)",
     url="https://github.com/juantascon/tgio",
     author="Juan Diego Tascon",
